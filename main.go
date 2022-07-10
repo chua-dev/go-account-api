@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -27,6 +28,28 @@ func getAccounts(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, accounts)
 }
 
+func accountById(c *gin.Context) {
+	id := c.Param("id")
+	account, error := getAccountById(id)
+	if error != nil {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Account not found."})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, account)
+}
+
+// Helper Function
+func getAccountById(id string) (*account, error) {
+	for index, account := range accounts {
+		if account.ID == id {
+			return &accounts[index], nil
+		}
+	}
+
+	return nil, errors.New("account not found")
+}
+
 func createAccount(c *gin.Context) {
 	var newAccount account
 
@@ -41,12 +64,35 @@ func createAccount(c *gin.Context) {
 
 }
 
+func addMember(c *gin.Context) {
+	id, ok := c.GetQuery("id")
+	if ok == false {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Missing id param from query"})
+		return
+	}
+
+	account, err := getAccountById(id)
+	if err != nil {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Account not found"})
+		return
+	}
+
+	if account.User >= 50 {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Account has maximum user"})
+		return
+	}
+	account.User += 1
+	c.IndentedJSON(http.StatusOK, account)
+}
+
 func main() {
 	var pop string
 	fmt.Println(&pop)
 
 	router := gin.Default()
 	router.GET("/accounts", getAccounts)
+	router.GET("/accounts/:id", accountById) // Path Parameters
 	router.POST("/accounts", createAccount)
+	router.PATCH("/addmember", addMember)
 	router.Run("localhost:8080")
 }
