@@ -83,6 +83,29 @@ func addMember(c *gin.Context) {
 	}
 	account.User += 1
 	c.IndentedJSON(http.StatusOK, account)
+	return
+}
+
+func removeMember(c *gin.Context) {
+	id, ok := c.GetQuery("id")
+	if ok == false {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Missing Id Param"})
+		return
+	}
+
+	account, err := getAccountById(id)
+	if err != nil {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Account not found"})
+		return
+	}
+
+	if account.User <= 0 {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "No more use for this account"})
+		return
+	}
+
+	account.User -= 1
+	c.IndentedJSON(http.StatusOK, account)
 }
 
 func main() {
@@ -94,5 +117,6 @@ func main() {
 	router.GET("/accounts/:id", accountById) // Path Parameters
 	router.POST("/accounts", createAccount)
 	router.PATCH("/addmember", addMember)
+	router.PATCH("/removemember", removeMember)
 	router.Run("localhost:8080")
 }
